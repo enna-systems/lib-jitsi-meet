@@ -23,3 +23,6 @@ types/types-comparer/hand-crafted.json
 
 # Make sure we never commit a commit hash.
 version.ts
+
+# Verified enna container build inputs.
+enna/target/

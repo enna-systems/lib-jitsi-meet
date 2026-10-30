@@ -8,6 +8,7 @@ import { VideoType } from '../../service/RTC/VideoType';
 import { createTrackStreamingStatusEvent } from '../../service/statistics/AnalyticsEvents';
 import JitsiRemoteTrack from '../RTC/JitsiRemoteTrack';
 import RTC from '../RTC/RTC';
+import type TraceablePeerConnection from '../RTC/TraceablePeerConnection';
 import RTCStats from '../RTCStats/RTCStats';
 import { RTCStatsEvents } from '../RTCStats/RTCStatsEvents';
 import browser from '../browser';
@@ -137,7 +138,7 @@ export class TrackStreamingStatusImpl {
     _onTrackVideoTypeChanged: () => void;
     _onLastNValueChanged: () => void;
     _onForwardedSourcesChanged: () => void;
-    _onConnectionStats: (tpc: any, data: any) => void;
+    _onConnectionStats: (tpc: TraceablePeerConnection, data: any) => void;
 
     /**
      * The framesDecoded value from the most recent CONNECTION_STATS event for this track's SSRC.
@@ -318,7 +319,13 @@ export class TrackStreamingStatusImpl {
         // On browsers where mute/unmute events are unreliable (Chrome >= M144, Firefox, Safari), use
         // per-SSRC framesDecoded from the existing RTPStatsCollector polling cycle to detect frozen video.
         if (!browser.supportsVideoMuteOnConnInterrupted() && this.track.isVideoTrack()) {
-            this._onConnectionStats = (_tpc: any, data: any) => this._handleFramesDecodedUpdate(data);
+            this._onConnectionStats = (tpc: TraceablePeerConnection, data: any) => {
+                // Both the bridge and P2P keep collecting stats. Only the connection owning this exact track can
+                // report its progress; source names and SSRCs may also be reused on a replacement connection.
+                if (tpc.getTrackBySSRC(this.track.getSsrc()) === this.track) {
+                    this._handleFramesDecodedUpdate(data);
+                }
+            };
             this.conference.statistics.addConnectionStatsListener(this._onConnectionStats);
         }
     }
