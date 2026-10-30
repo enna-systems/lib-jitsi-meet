@@ -59,7 +59,7 @@ jobs:
             exit 1
           fi
           node -e "require('node:assert/strict').equal(require('./enna/target/image/enna-web-build.json').revision, process.env.GITHUB_SHA)"
-          IMAGE="rg.fr-par.scw.cloud/dev-enna-nsp/enna-jitsi-web:stable-11248-p2p-freeze-${GITHUB_SHA}"
+          IMAGE="rg.fr-par.scw.cloud/dev-enna-nsp/enna-jitsi-web:stable-11248-safari-preview-${GITHUB_SHA}"
           docker build --platform linux/amd64 --build-arg ENNA_REVISION="$GITHUB_SHA" -t "$IMAGE" enna
           printf '%s' "$DOCKER_PASSWORD_SCW_DEV" | docker login rg.fr-par.scw.cloud/dev-enna-nsp \
             --username nologin --password-stdin

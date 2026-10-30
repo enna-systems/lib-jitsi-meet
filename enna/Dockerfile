@@ -3,7 +3,7 @@ FROM ghcr.io/jitsi/web:stable-11248@sha256:615d9882b7bc2bc0b648fb48c153ce2b9c503
 USER root
 
 ARG ENNA_REVISION
-LABEL org.opencontainers.image.title="enna Jitsi web: P2P streaming status fix" \
+LABEL org.opencontainers.image.title="enna Jitsi web: P2P and Safari camera compatibility" \
       org.opencontainers.image.source="https://github.com/enna-systems/lib-jitsi-meet" \
       org.opencontainers.image.revision="$ENNA_REVISION"
 

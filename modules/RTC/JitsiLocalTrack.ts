@@ -26,6 +26,7 @@ import { isValidNumber } from '../util/MathUtil';
 import JitsiTrack from './JitsiTrack';
 import RTCUtils from './RTCUtils';
 import TraceablePeerConnection from './TraceablePeerConnection';
+import { refreshWebKitVideoLayout } from './refreshWebKitVideoLayout';
 
 const logger = getLogger('rtc:JitsiLocalTrack');
 
@@ -97,6 +98,7 @@ export default class JitsiLocalTrack extends JitsiTrack {
     private _originalStream?: MediaStream;
     private _stopStreamInProgress: boolean;
     private _effectEnabled?: boolean;
+    private _videoLayoutCleanup = new Map<HTMLElement, () => void>();
     public metadata: ITrackMetadata;
     public rtcId: number;
     public sourceId?: string;
@@ -655,6 +657,34 @@ export default class JitsiLocalTrack extends JitsiTrack {
         if (effect) {
             this._startStreamEffect(effect);
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected override _onTrackAttach(container: HTMLElement): void {
+        this._onTrackDetach(container);
+
+        if (!browser.isIosBrowser() || !browser.isWebKitBased()
+                || !this.isVideoTrack() || this.videoType !== VideoType.CAMERA || this._streamEffect
+                || this.getCameraFacingMode() !== CameraFacingMode.USER
+                || !(container instanceof HTMLVideoElement)
+                || typeof container.requestVideoFrameCallback !== 'function') {
+            return;
+        }
+
+        const stream = this.stream;
+
+        this._videoLayoutCleanup.set(container, refreshWebKitVideoLayout(container, stream,
+            () => !this.disposed && this.stream === stream && this.containers.includes(container)));
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected override _onTrackDetach(container: HTMLElement): void {
+        this._videoLayoutCleanup.get(container)?.();
+        this._videoLayoutCleanup.delete(container);
     }
 
     /**

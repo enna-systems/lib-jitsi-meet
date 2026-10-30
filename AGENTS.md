@@ -13,3 +13,7 @@ Read the upstream `CLAUDE.md` for architecture and library conventions.
 - The Dockerfile retains the pinned upstream runtime, changes the library URL cache key and regenerates
   compressed assets. Restore the upstream `s6` user after assembling the image.
 - See `enna/README.md` and `enna/VALIDATION.md` for the build, actual Safari validation and rollback.
+- The local Safari portrait preview refresh is a candidate awaiting iPhone 17 / iOS 27 acceptance. Keep
+  capture and layout CSS unchanged, cancel asynchronous work on detach/mute/dispose, and never reattach
+  an old stream over a new source. Apply it only to iOS WebKit front-camera playback. Chrome unit tests
+  validate lifecycle boundaries, not WebKit's native painting. Do not claim an iOS 27 fix without a target test.

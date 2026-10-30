@@ -31,6 +31,6 @@ const metadata = {
     checks: ['eslint-and-types', 'karma-native', 'karma-polyfill', 'webpack-and-typescript']
 };
 writeFileSync(path.join(output, 'enna-web-build.json'), JSON.stringify(metadata, null, 2) + '\n');
-writeFileSync(path.join(output, 'cache-version'), `enna-p2p-freeze-${bundleSha256.slice(0, 16)}\n`);
+writeFileSync(path.join(output, 'cache-version'), `enna-safari-preview-${bundleSha256.slice(0, 16)}\n`);
 writeFileSync(path.join(output, 'SHA256SUMS'), checksums.join('\n') + '\n');
 console.log(`Verified image inputs: ${output}; library SHA-256 ${bundleSha256}`);

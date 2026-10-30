@@ -1,4 +1,36 @@
-# P2P video status regression — 2026-10-30
+# Jitsi compatibility validation
+
+## Safari local portrait presentation candidate — 2026-10-30
+
+An iPhone 17 / iOS 27.0.1 reporter reproduced a too-small local camera picture with margins on all
+four sides: in the thumbnail, on the large self-view while alone, and in a three-party call. Camera
+off/on and backgrounding Safari restored the expected size. No JavaScript experiment was executed
+on that device. A connected iPhone 12 / iOS 26.6.1 did not reproduce it in controlled camera-reuse and
+layout-change tests. An observer received portrait H.264 at 720 × 1280; receive dimensions do not
+establish the reporter's local DOM or painted geometry.
+
+The symptom matches [WebKit 259364](https://bugs.webkit.org/show_bug.cgi?id=259364#c18). The candidate
+reloads only portrait front-camera playback on iOS WebKit after the first decoded frame, leaving a
+full rendering frame before restoring the exact stream. It changes neither capture nor layout CSS.
+Separate local elements, including the large self-view, each get one refresh on attachment.
+Detach/dispose, mute, source replacement, paused playback and unsupported APIs are covered by lifecycle
+tests. Five initial lifecycle tests fail against the unchanged library. These tests establish the
+new recovery behavior and its boundaries; they do **not** reproduce WebKit's native rendering defect.
+
+**Target-device acceptance is still required. Do not treat this candidate as a verified fix.** After
+the normal dev image rollout, test in Safari without console scripts:
+
+1. Fresh portrait joins alone, with one peer and with two peers: no margins above/below the thumbnail;
+   the large local image uses its expected camera framing. Keep thumbnail `contain`.
+2. Repeat leaving/rejoining and test camera off/on, front/rear switch, rotation and background/foreground.
+3. Mute or leave promptly during camera startup: playback must not be revived by delayed recovery.
+4. Verify outgoing camera continuity and the previously fixed healthy JVB → P2P transition.
+
+The source, dev image and GitOps rollout remain separate changes. The previously verified dev image
+is the rollback target until acceptance:
+`rg.fr-par.scw.cloud/dev-enna-nsp/enna-jitsi-web:stable-11248-p2p-freeze-a5262b34566f8e8fe7c1a144b2ecf61d41e064c7@sha256:76d664de6f34231b00e75c7e51b5a71879ce2b8d8ca703d84fb031cf51c0e467`.
+
+## P2P video status regression — 2026-10-30
 
 The original served library at `7d14f385` reproduced the false video interruption twice on a real iPhone
 in Safari after Chrome left a three-party call with a native Android Dock. Both interruptions lasted

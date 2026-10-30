@@ -6,10 +6,21 @@ returns to P2P. The first inbound decoded-frame counter must be emitted even bef
 have a baseline, and freeze detection must ignore reports from connections that do not own its track.
 The timeout is unchanged; genuine stalls and recovery remain covered by the upstream tests.
 
-The changes and regression tests are committed directly in the fork. Five assertions fail on the original
-source; with the fix all 622 tests pass in both Karma variants. The exact built library was also tested
-twice in Safari on a real iPhone; see [validation](VALIDATION.md). The upstream test-bundle warning about
+The original P2P-only change and its regression tests are committed directly in the fork. Five assertions
+fail on the original source; that revision passes all 622 tests in both Karma variants. Its exact built
+library was tested twice in Safari on a real iPhone; see [validation](VALIDATION.md). The upstream warning about
 the removed `CONFERENCE_RESTARTED` export remains; lint, types and the production build are clean.
+
+The current candidate also refreshes local portrait playback once after the first decoded frame on iOS
+WebKit front cameras. It keeps the same camera stream, leaves `contain` and all CSS unchanged, and handles
+the thumbnail and large self-view through the common local track attachment path. Pending recovery is
+cancelled on detach/dispose and cannot restore a muted track or overwrite a newer stream. Desktop,
+React Native, remote tracks, audio, screensharing, effects and rear-camera playback keep their existing path.
+
+**Safari acceptance is pending.** An iPhone 17 / iOS 27.0.1 reporter reproduced excessive margins in both
+self-views, alone and in groups, and confirmed recovery after camera off/on or background/foreground.
+The playback-only reset has not yet been validated on that device. Unit tests cover its lifecycle; they
+cannot simulate WebKit's native painting defect. See [validation](VALIDATION.md) before promoting this image.
 
 ## Build
 
@@ -23,8 +34,8 @@ docker build --platform linux/amd64 --build-arg ENNA_REVISION="$(git rev-parse H
 
 Set `CHROME_BIN` when Chrome is not automatically detected. The build runs `npm ci`, lint/types,
 both complete Karma suites and the full production build. Generated image inputs are ignored under
-`enna/target/image`. The library's version remains the identifier validated in Safari; full fork commit,
-upstream revision, library SHA-256 and Node version are recorded in `enna-web-build.json` in the image.
+`enna/target/image`. The candidate version is `7d14f385-enna-safari-preview`; full fork commit, upstream
+revision, library SHA-256 and Node version are recorded in `enna-web-build.json` in the image.
 
 The Dockerfile pins the existing web image by digest and replaces only the rebuilt library artifacts.
 Its SHA-256-derived URL cache key prevents Safari from retaining the old library. gzip copies are rebuilt
@@ -42,7 +53,7 @@ dev registry, or grant this repository access to an equivalent organization secr
 is used. Images are published as:
 
 ```
-rg.fr-par.scw.cloud/dev-enna-nsp/enna-jitsi-web:stable-11248-p2p-freeze-<full-git-commit>
+rg.fr-par.scw.cloud/dev-enna-nsp/enna-jitsi-web:stable-11248-safari-preview-<full-git-commit>
 ```
 
 CI retains verified image inputs for seven days and reports the pushed digest. If the secret is added
