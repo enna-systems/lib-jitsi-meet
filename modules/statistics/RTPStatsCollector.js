@@ -344,9 +344,9 @@ export default class StatsCollector {
                 }
             }
 
-            // Collect framesDecoded for all remote inbound video streams (used by TrackStreamingStatus for
-            // freeze detection on browsers where mute/unmute events are unreliable).
-            if (loss.isDownloadStream && !track.isLocal() && track.isVideoTrack()
+            // framesDecoded is set only for inbound RTP. Unlike packet-loss deltas, its first value is already
+            // usable without a previous report. Omitting it falsely freezes a new P2P stream for one stats interval.
+            if (!track.isLocal() && track.isVideoTrack()
                     && typeof ssrcStats.framesDecoded === 'number') {
                 framesDecodedMap.set(ssrc, ssrcStats.framesDecoded);
             }

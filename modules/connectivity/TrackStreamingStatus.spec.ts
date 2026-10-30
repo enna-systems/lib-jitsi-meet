@@ -14,6 +14,7 @@ import { TrackStreamingStatus, TrackStreamingStatusImpl } from './TrackStreaming
 
 class MockStatistics {
     listeners: Function[] = [];
+    track: MockTrack;
 
     addConnectionStatsListener(listener: Function): void {
         this.listeners.push(listener);
@@ -29,7 +30,7 @@ class MockStatistics {
 
     emitConnectionStats(tpc: any, data: any): void {
         for (const listener of this.listeners) {
-            listener(tpc, data);
+            listener(tpc ?? { getTrackBySSRC: () => this.track }, data);
         }
     }
 }
@@ -121,6 +122,8 @@ function buildInstance(options: {
     const mockTrack = new MockTrack(SOURCE_NAME, PARTICIPANT_ID, SSRC);
     const mockRtc = new MockRTC();
     const mockConference = new MockConference();
+
+    mockConference.statistics.track = mockTrack;
 
     if (options.isVideoTrack === false) {
         mockTrack.setIsVideoTrack(false);
@@ -882,5 +885,50 @@ describe('TrackStreamingStatusImpl end-to-end — P2P mode', () => {
 
         expect(impl._statsTrackFrozen).toBeFalse();
         expect(mockTrack.getTrackStreamingStatus()).toBe(TrackStreamingStatus.ACTIVE);
+    });
+});
+
+
+describe('TrackStreamingStatus connection ownership', () => {
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('ignores bridge reports while monitoring a healthy P2P track', () => {
+        jasmine.clock().install();
+        const { impl, mockConference, mockTrack } = buildInstance({
+            inForwardedSources: false,
+            p2pActive: true,
+            trackIsP2P: true
+        });
+
+        impl.init();
+        jasmine.clock().mockDate(new Date(0));
+        mockConference.statistics.emitConnectionStats(null, { framesDecoded: new Map([[SSRC, 100]]) });
+        jasmine.clock().mockDate(new Date(5000));
+        mockConference.statistics.emitConnectionStats({ getTrackBySSRC: () => undefined }, {
+            framesDecoded: new Map([[99999, 200]])
+        });
+        expect(mockTrack.getTrackStreamingStatus()).toBe(TrackStreamingStatus.ACTIVE);
+        expect(impl._lastFramesDecodedAt).toBe(0);
+        impl.dispose();
+    });
+
+    it('ignores a replaced connection even when its source name and SSRC match', () => {
+        jasmine.clock().install();
+        const { impl, mockConference, mockTrack } = buildInstance({
+            inForwardedSources: false,
+            p2pActive: true,
+            trackIsP2P: true
+        });
+        const replacedTrack = new MockTrack(SOURCE_NAME, PARTICIPANT_ID, SSRC);
+
+        impl.init();
+        jasmine.clock().mockDate(new Date(0));
+        mockConference.statistics.emitConnectionStats(null, { framesDecoded: new Map([[SSRC, 100]]) });
+        jasmine.clock().mockDate(new Date(5000));
+        mockConference.statistics.emitConnectionStats({ getTrackBySSRC: () => replacedTrack }, {
+            framesDecoded: new Map([[SSRC, 100]])
+        });
+        expect(mockTrack.getTrackStreamingStatus()).toBe(TrackStreamingStatus.ACTIVE);
+        impl.dispose();
     });
 });
